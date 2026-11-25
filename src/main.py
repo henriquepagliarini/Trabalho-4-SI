@@ -2,6 +2,7 @@ import os
 import pandas as pd
 
 from modelos import Vitima, Cluster, Agente
+from alocador import Alocador
 
 def carregar_dados(base_dir):
     grid_str = "75x75"
@@ -55,9 +56,17 @@ def gerar_resumo_menores_12(clusters):
         
     return resumo
 
-def main(coordenadas_base, vitimas, clusters):
-    pass
+def main(base_dir, coordenadas_base, vitimas, clusters):
+    agentes = [
+        Agente(1),
+        Agente(2),
+        Agente(3, apenas_adultos=True),
+        Agente(4, apenas_adultos=True),
+        Agente(5, apenas_adultos=True),
+    ]
 
+    Alocador.atribuir_vitimas(clusters, agentes)
+    
 if __name__ == '__main__':
     src_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.dirname(src_dir)
@@ -70,4 +79,4 @@ if __name__ == '__main__':
     print("\n--- Vítimas com idade < 12 por arquivo ---")
     resumo = gerar_resumo_menores_12(clusters)
     
-    main(coordenadas_base, vitimas, clusters)
+    main(base_dir, coordenadas_base, vitimas, clusters)

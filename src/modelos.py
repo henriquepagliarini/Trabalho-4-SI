@@ -35,7 +35,7 @@ class Agente:
         self.vitimas_atribuidas = []
         self.rota_otimizada = []
         
-    def adicionar_vitimas(self, vitima):
+    def adicionar_vitima(self, vitima):
         if self.apenas_adultos and vitima.idade < 12:
             raise ValueError(f"Agente {self.id} não pode socorrer vítimas menores que 12 anos.")
         self.vitimas_atribuidas.append(vitima)
