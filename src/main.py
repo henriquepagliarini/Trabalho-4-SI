@@ -1,108 +1,73 @@
 import os
 import pandas as pd
 
-def carregar_base(env_config_path):
-    with open(env_config_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("BASE"):
-                _, coordenadas = line.split(maxsplit=1)
-                x, y = [int(v.strip()) for v in coordenadas.split(",")]
-                return x, y
-    raise ValueError(f"'BASE' não encontrada em {env_config_path}")
+from modelos import Vitima, Cluster, Agente
 
-def carregar_vitimas(map_csv_path, coordenadas_base):
-    base_x, base_y = coordenadas_base
-    df = pd.read_csv(map_csv_path, encoding="utf-8")
-    vitimas_df = df[df["id"] != -1].copy()
-    
-    vitimas = {}
-    for _, row in vitimas_df.iterrows():
-        v_id = int(row["id"])
-        x_rel = int(row["x_rel"])
-        y_rel = int(row["y_rel"])
-        
-        vitimas[v_id] = {
-            "id": v_id,
-            "x_rel": x_rel,
-            "y_rel": y_rel,
-            "x": base_x + x_rel,
-            "y": base_y + y_rel,
-            "idade": int(row["idade"]),
-            "tri": int(row["tri"]),
-            "sobr": float(row["sobr"])
-        }
-    return vitimas
-
-def carregar_clusters(clusters_dir):
-    clusters = {}
-    
-    for nome_file in sorted(os.listdir(clusters_dir)):
-        path = os.path.join(clusters_dir, nome_file)
-        if os.path.isfile(path) and nome_file.startswith("cluster") and nome_file.endswith(".txt"):
-            ids = []
-            with open(path, "r", encoding="utf-8") as f:
-                for line in f:
-                    linha = line.strip()
-                    if linha:
-                        ids.append(int(linha))
-            clusters[nome_file] = ids
-    return clusters
-
-def contar_menores_12(clusters, vitimas):
-    resumo = {}
-    
-    for nome_file, ids in clusters.items():
-        total_validos = 0
-        menores_12 = 0
-        nao_encontrados = 0
-        
-        for v_id in ids:
-            if v_id in vitimas:
-                total_validos += 1
-                if vitimas[v_id]["idade"] < 12:
-                    menores_12 += 1
-            else:
-                nao_encontrados += 1
-
-        porcentagem = (menores_12 / total_validos * 100.0) if total_validos > 0 else 0.0
-        resumo[nome_file] = {
-            "menores_12": menores_12,
-            "total": total_validos,
-            "porcentagem": porcentagem,
-            "nao_encontrados": nao_encontrados
-        }
-    return resumo
-    
-if __name__ == '__main__':
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    base_dir = os.path.dirname(base_dir)
-    
+def carregar_dados(base_dir):
     grid_str = "75x75"
     vict_str = "410v"
     
-    base_path = os.path.join(base_dir, "datasets", "env", f"{grid_str}_{vict_str}", "env_config.txt")
-    coordenadas_base = carregar_base(base_path)
+    env_path = os.path.join(base_dir, "datasets", "env", f"{grid_str}_{vict_str}", "env_config.txt")
+    coordenadas_base = (0, 0)
+
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for linha in f:
+                if linha.startswith("BASE"):
+                    _, coordenadas = linha.split(maxsplit=1)
+                    coordenadas_base = tuple(int(v.strip()) for v in coordenadas.split(","))
     
-    vitimas_path = os.path.join(base_dir, "datasets", "map_tri_sobr.csv")
-    vitimas = carregar_vitimas(vitimas_path, coordenadas_base)
+    vitimas_csv = os.path.join(base_dir, "datasets", "map_tri_sobr.csv")
+    df = pd.read_csv(vitimas_csv)
+    df_v = df[df["id"] != -1]
+    
+    vitimas = {}
+    for _, r in df_v.iterrows():
+        v = Vitima(r["id"], r["x_rel"], r["y_rel"], coordenadas_base, r["idade"], r["tri"], r["sobr"])
+        vitimas[v.id] = v
     
     clusters_dir = os.path.join(base_dir, "datasets", "clusters")
-    clusters = carregar_clusters(clusters_dir)
+    clusters = {}
+    for nome_arquivo in sorted(os.listdir(clusters_dir)):
+        if nome_arquivo.startswith("cluster") and nome_arquivo.endswith(".txt"):
+            with open(os.path.join(clusters_dir, nome_arquivo), "r", encoding="utf-8") as f:
+                ids = [int(linha.strip()) for linha in f if linha.strip()]
+            clusters[nome_arquivo] = Cluster(nome_arquivo, ids, vitimas)
+    
+    return coordenadas_base, vitimas, clusters
+
+def gerar_resumo_menores_12(clusters):
+    resumo = {}
+    
+    lista_clusters = clusters.values() if isinstance(clusters, dict) else clusters
+
+    for cluster in lista_clusters:
+        total = len(cluster.vitimas)
+        menores = len(cluster.criancas)
+        porcentagem = (menores / total * 100.0) if total > 0 else 0.0
+        
+        resumo[cluster.nome] = {
+            "menores_12": menores,
+            "total": total,
+            "porcentagem": porcentagem
+        }
+        print(f"{cluster.nome}: {menores}/{total} ({porcentagem:.1f}%)")
+        
+    return resumo
+
+def main(coordenadas_base, vitimas, clusters):
+    pass
+
+if __name__ == '__main__':
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(src_dir)
+    coordenadas_base, vitimas, clusters = carregar_dados(base_dir)
     
     print(f"Base: {coordenadas_base} / Vitimas carregadas: {len(vitimas)}")
-    for nome, ids in clusters.items():
-        print(f"{nome}: {len(ids)} vitimas")
+    for nome_cluster, cluster in clusters.items():
+        print(f"{nome_cluster}: {len(cluster.vitimas)} vitimas")
         
     print("\n--- Vítimas com idade < 12 por arquivo ---")
-    resumo_idade = contar_menores_12(clusters, vitimas)
-    for nome, info in resumo_idade.items():
-        extra = (
-            f" (sem dados no mapa: {info['nao_encontrados']})"
-            if info["nao_encontrados"] > 0
-            else ""
-        )
-        print(
-            f"{nome}: {info['menores_12']}/{info['total']}"
-            f" ({info['porcentagem']:.1f}%){extra}"
-        )
+    resumo = gerar_resumo_menores_12(clusters)
+    
+    main(coordenadas_base, vitimas, clusters)
