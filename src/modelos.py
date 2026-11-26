@@ -33,7 +33,6 @@ class Agente:
         self.id = id_agente
         self.apenas_adultos = apenas_adultos
         self.vitimas_atribuidas = []
-        self.rota_otimizada = []
         
     def adicionar_vitima(self, vitima):
         if self.apenas_adultos and vitima.idade < 12:

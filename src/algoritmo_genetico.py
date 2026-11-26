@@ -1,7 +1,7 @@
 import random
 
 class AGCaxeiroViajante:
-    def __init__(self, xy_base, vitimas, pop_size=100, generations=300, mutation_rate=0.8, elitism=True):
+    def __init__(self, xy_base, vitimas, pop_size=200, generations=500, mutation_rate=0.05, elitism=True):
         self.xy_base = xy_base
         self.vitimas = vitimas
         self.pop_size = pop_size

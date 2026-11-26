@@ -58,7 +58,7 @@ def gerar_resumo_menores_12(clusters):
         
     return resumo
 
-def main(base_dir, saida_dir, coordenadas_base, clusters):
+def main(saida_dir, coordenadas_base, clusters):
     agentes = [
         Agente(1),
         Agente(2),
@@ -69,7 +69,7 @@ def main(base_dir, saida_dir, coordenadas_base, clusters):
 
     Alocador.atribuir_e_sequenciar_vitimas(saida_dir, coordenadas_base, clusters, agentes)
     
-    print(f"{'Seq':<4} | {'Agente':<6} | {'Verde':<3} {'Amarelo':<3} {'Vermelho':<3} {'Preto':<3} | {'Total':<5} | {'Distância':<10} | {'μ sobr':<8} | {'σ sobr':<8}")
+    print(f"{'Seq':<4} | {'Agente':<6} | {'Vd':<3} {'Ama':<3} {'Vm':<3} {'Pr':<3} | {'Total':<5} | {'Distância':<10} | {'μ sobr':<8} | {'σ sobr':<8}")
     print("=" * 85)
     
     for i, agente in enumerate(agentes):
@@ -108,4 +108,4 @@ if __name__ == '__main__':
     print("\n--- Vítimas com idade < 12 por arquivo ---")
     resumo = gerar_resumo_menores_12(clusters)
     
-    main(base_dir, saida_dir, coordenadas_base, clusters)
+    main(saida_dir, coordenadas_base, clusters)
